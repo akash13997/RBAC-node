@@ -17,7 +17,7 @@ router.get("/", productController.getProducts);
 
 router.get("/:id", productController.getProductById);
 
-router.put("/:id", authenticate, authorize("ADMIN", "SELLER"), productController.updateProduct);
+router.put("/:id", authenticate, authorize("ADMIN", "SELLER"), upload.single("image"), productController.updateProduct);
 
 router.delete("/:id", authenticate, authorize("ADMIN", "SELLER"), productController.deleteProduct);
 

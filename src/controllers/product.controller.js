@@ -1,8 +1,13 @@
 const productService = require("../services/product.service");
 
 const createProduct = async (req, res) => {
+   
     try {
-        const product = await productService.createProduct(req.body, req.user.id);
+      const productData = {
+            ...req.body,
+            image: req.file ? req.file.filename : ""
+        }
+        const product = await productService.createProduct(productData, req.user.id);
         res.status(201).json({
             success: true, 
             message: "Product created successfully",
@@ -64,9 +69,19 @@ const updateProduct = async (req, res) => {
     }
 }
 
-const deleteProduct =(req, res) => {
-    console.log("api controller delete product");
-    res.send("Product deleted");
+const deleteProduct = async (req, res) => {
+    try {
+        await productService.deleteProduct(req.params.id, req.user);
+        res.status(200).json({
+            success: true,
+            message: "Product deleted successfully"
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
 }
 
 module.exports = {

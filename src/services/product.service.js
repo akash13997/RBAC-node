@@ -169,9 +169,25 @@ await product.save();
 return product;
 }
 
+const deleteProduct = async (productId, user) => {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        throw new Error("Invalid Product ID");
+    }
+    const product = await Product.findById(productId);
+    if (!product) {
+        throw new Error("Product not found");
+    }
+    if (user.role === "SELLER" && product.seller.toString() !== user.id) {
+        throw new Error("You can delete only your own products");
+    }
+    product.isActive = false;
+    await product.save();
+};
+
 module.exports = {
   createProduct,
   getProducts,
     getProductById,
-    updateProduct
+    updateProduct,
+    deleteProduct
 };

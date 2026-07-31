@@ -12,4 +12,5 @@ app.use(express.json());
 app.use(logger);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/uploads", express.static("uploads"));
 module.exports = app;

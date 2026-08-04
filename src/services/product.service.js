@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const mongoose = require("mongoose");
+const { deleteImage } = require("./cloudinary.service");
 
 const createProduct = async (productData, sellerId) => {
   const {
@@ -54,140 +55,130 @@ const createProduct = async (productData, sellerId) => {
 };
 
 const getProducts = async (query) => {
+  let {
+    page = 1,
 
-    let {
+    limit = 10,
 
-        page = 1,
+    search = "",
 
-        limit = 10,
+    category,
 
-        search = "",
+    sort = "-createdAt",
+  } = query;
 
-        category,
+  page = Number(page);
 
-        sort = "-createdAt"
+  limit = Number(limit);
 
-    } = query;
+  const skip = (page - 1) * limit;
 
-    page = Number(page);
+  const filter = {
+    isActive: true,
+  };
 
-    limit = Number(limit);
+  if (category) {
+    filter.category = category;
+  }
 
-    const skip = (page - 1) * limit;
+  if (search) {
+    filter.name = {
+      $regex: search,
 
-    const filter = {
-
-        isActive: true
-
+      $options: "i",
     };
+  }
 
-    if(category){
+  const products = await Product.find(filter)
 
-        filter.category = category;
+    .sort(sort)
 
-    }
+    .skip(skip)
 
-    if(search){
+    .limit(limit);
 
-        filter.name = {
+  const total = await Product.countDocuments(filter);
 
-            $regex: search,
+  return {
+    products,
 
-            $options: "i"
+    pagination: {
+      page,
 
-        };
+      limit,
 
-    }
+      total,
 
-    const products = await Product.find(filter)
-
-        .sort(sort)
-
-        .skip(skip)
-
-        .limit(limit);
-
-    const total = await Product.countDocuments(filter);
-
-    return {
-
-        products,
-
-        pagination:{
-
-            page,
-
-            limit,
-
-            total,
-
-            totalPages: Math.ceil(total / limit)
-
-        }
-
-    };
-
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getProductById = async (id) => {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new Error("Invalid product ID");
-    }
-    const product = await Product.findById(id);
-    if (!product) {
-        throw new Error("Product not found");
-    }
-    return product;
-}
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid product ID");
+  }
+  const product = await Product.findById(id);
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  return product;
+};
 
 const updateProduct = async (productId, data, user) => {
-if (!mongoose.Types.ObjectId.isValid(productId)) {
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new Error("Invalid Product ID");
-}
-const product = await Product.findById(productId);
-if (!product) {
+  }
+  const product = await Product.findById(productId);
+  if (!product) {
     throw new Error("Product not found");
-}
-if(user.role ==="SELLER" && product.seller.toString() !== user.id){
+  }
+  if (user.role === "SELLER" && product.seller.toString() !== user.id) {
     throw new Error("You can update only your own products");
-}
-if (data.name !== undefined) product.name = data.name;
-if (data.description !== undefined) product.description = data.description;
-if (data.price !== undefined) product.price = data.price;
-if (data.stock !== undefined) product.stock = data.stock;
-if (data.category !== undefined) product.category = data.category;
-if (data.image !== undefined) product.image = data.image;
-if (product.price < 0) {
+  }
+  if (data.name !== undefined) product.name = data.name;
+  if (data.description !== undefined) product.description = data.description;
+  if (data.price !== undefined) product.price = data.price;
+  if (data.stock !== undefined) product.stock = data.stock;
+  if (data.category !== undefined) product.category = data.category;
+  if (data.image) {
+    if (product.image?.publicId) {
+      await deleteImage(product.image.publicId);
+    }
+
+    product.image = data.image;
+  }
+  if (product.price < 0) {
     throw new Error("Price cannot be negative");
-}
+  }
 
-if (product.stock < 0) {
+  if (product.stock < 0) {
     throw new Error("Stock cannot be negative");
-}
-await product.save();
+  }
+  await product.save();
 
-return product;
-}
+  return product;
+};
 
 const deleteProduct = async (productId, user) => {
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-        throw new Error("Invalid Product ID");
-    }
-    const product = await Product.findById(productId);
-    if (!product) {
-        throw new Error("Product not found");
-    }
-    if (user.role === "SELLER" && product.seller.toString() !== user.id) {
-        throw new Error("You can delete only your own products");
-    }
-    product.isActive = false;
-    await product.save();
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new Error("Invalid Product ID");
+  }
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  if (user.role === "SELLER" && product.seller.toString() !== user.id) {
+    throw new Error("You can delete only your own products");
+  }
+  product.isActive = false;
+  await product.save();
 };
 
 module.exports = {
   createProduct,
   getProducts,
-    getProductById,
-    updateProduct,
-    deleteProduct
+  getProductById,
+  updateProduct,
+  deleteProduct,
 };

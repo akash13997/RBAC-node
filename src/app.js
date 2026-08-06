@@ -3,11 +3,12 @@ const logger = require("./middleware/logger");
 const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
 const multer = require("multer");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
 app.use(express.json());
-
+app.use(cookieParser());
 app.use(logger);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
